@@ -5,6 +5,7 @@
 package frc.robot;
 
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkMaxLimitSwitch;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.SparkMaxLimitSwitch.Type;
@@ -33,7 +34,7 @@ public class Robot extends TimedRobot {
 
   SparkMaxLimitSwitch forwardLimitSwitch, reverseLimitSwitch;
 
-  Encoder encoder;
+  RelativeEncoder encoder;
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -55,14 +56,10 @@ public class Robot extends TimedRobot {
     reverseLimitSwitch = mainSM.getReverseLimitSwitch(Type.kNormallyOpen);
 
     SmartDashboard.putNumber("voltage", 0);
-    SmartDashboard.putNumber("ArmAngle", 0);
+    SmartDashboard.putNumber("armAngle", 0);
 
     forwardLimitSwitch.enableLimitSwitch(true);
     reverseLimitSwitch.enableLimitSwitch(true);
-
-
-
-
   }
 
   /**
@@ -78,7 +75,8 @@ public class Robot extends TimedRobot {
     mainSM.setVoltage(currentVoltage);
 
     currentVoltage = (forwardLimitSwitch.isPressed() || reverseLimitSwitch.isPressed()) ? 0 : currentVoltage;
-
+    encoder = mainSM.getEncoder();
+    SmartDashboard.putNumber("armAngle", encoder.getPosition()); // check: position to angle?
     
   }
 
