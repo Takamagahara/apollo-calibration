@@ -35,6 +35,8 @@ public class Robot extends TimedRobot {
   SparkMaxLimitSwitch forwardLimitSwitch, reverseLimitSwitch;
 
   RelativeEncoder encoder;
+  double currentArmAngle;
+  
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -60,6 +62,7 @@ public class Robot extends TimedRobot {
 
     forwardLimitSwitch.enableLimitSwitch(true);
     reverseLimitSwitch.enableLimitSwitch(true);
+
   }
 
   /**
@@ -76,8 +79,11 @@ public class Robot extends TimedRobot {
 
     currentVoltage = (forwardLimitSwitch.isPressed() || reverseLimitSwitch.isPressed()) ? 0 : currentVoltage;
     encoder = mainSM.getEncoder();
-    SmartDashboard.putNumber("armAngle", encoder.getPosition()); // check: position to angle?
     
+    encoder.setPositionConversionFactor(360.0);
+    currentArmAngle = encoder.getPositionConversionFactor();
+
+    SmartDashboard.putNumber("armAngle", currentArmAngle); // check: position to angle?
   }
 
   /**
