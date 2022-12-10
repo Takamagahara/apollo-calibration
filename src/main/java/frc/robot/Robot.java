@@ -5,12 +5,12 @@
 package frc.robot;
 
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkMaxLimitSwitch;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.SparkMaxLimitSwitch.Type;
 
-import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -28,13 +28,18 @@ public class Robot extends TimedRobot {
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
   CANSparkMax mainSM, followerSM;
-
   int mainSMID = 16;
   int followerSMID = 17;
 
   SparkMaxLimitSwitch forwardLimitSwitch, reverseLimitSwitch;
 
   RelativeEncoder encoder;
+
+  double currentVoltage, currentVelocity;
+
+  double kG = 0.65;
+  double kS = 0.12;
+
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -49,7 +54,7 @@ public class Robot extends TimedRobot {
     mainSM = new CANSparkMax(mainSMID, MotorType.kBrushless);
     followerSM = new CANSparkMax(followerSMID, MotorType.kBrushless);
 
-    mainSM.setInverted(true);
+    // mainSM.setInverted(true);
     followerSM.follow(mainSM, true);
 
     forwardLimitSwitch = mainSM.getForwardLimitSwitch(Type.kNormallyOpen);
@@ -57,9 +62,15 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putNumber("voltage", 0);
     SmartDashboard.putNumber("armAngle", 0);
+    SmartDashboard.putNumber("currentVelocity", 0);
 
     forwardLimitSwitch.enableLimitSwitch(true);
     reverseLimitSwitch.enableLimitSwitch(true);
+
+    encoder = mainSM.getEncoder();
+    encoder.setPositionConversionFactor(360.0 / 36.6);
+    encoder.setVelocityConversionFactor(0.1047); // Xrev/m -> rad/s (=(X*2PI) / 60s)
+
   }
 
   /**
@@ -71,13 +82,17 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
-    double currentVoltage = SmartDashboard.getNumber("voltage", 0);
-    mainSM.setVoltage(currentVoltage);
-
-    currentVoltage = (forwardLimitSwitch.isPressed() || reverseLimitSwitch.isPressed()) ? 0 : currentVoltage;
-    encoder = mainSM.getEncoder();
-    SmartDashboard.putNumber("armAngle", encoder.getPosition()); // check: position to angle?
+    currentVoltage = SmartDashboard.getNumber("voltage", 0);
+    currentVelocity = encoder.getVelocity(); 
+    SmartDashboard.putNumber("currentVelocity", currentVelocity);
+    SmartDashboard.putNumber("voltage", currentVoltage);  
     
+
+    SmartDashboard.putNumber("armAngle", encoder.getPosition()); // check: position to angle? 
+    SmartDashboard.putBoolean("forward ls pressed", forwardLimitSwitch.isPressed());
+    SmartDashboard.putBoolean("reverse ls pressed", reverseLimitSwitch.isPressed());
+    
+
   }
 
   /**
@@ -117,7 +132,9 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+    mainSM.setVoltage(currentVoltage);
+  }
 
   /** This function is called once when the robot is disabled. */
   @Override
