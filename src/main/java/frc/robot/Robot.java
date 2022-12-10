@@ -34,6 +34,8 @@ public class Robot extends TimedRobot {
   SparkMaxLimitSwitch forwardLimitSwitch, reverseLimitSwitch;
 
   RelativeEncoder encoder;
+  double currentArmAngle;
+  
 
   double currentVoltage, currentVelocity;
 
