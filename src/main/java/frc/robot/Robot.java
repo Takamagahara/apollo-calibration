@@ -11,6 +11,7 @@ import com.revrobotics.SparkMaxLimitSwitch;
 import com.revrobotics.SparkMaxLimitSwitch.Type;
 
 import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -36,8 +37,16 @@ public class Robot extends TimedRobot {
 
   SparkMaxLimitSwitch forwardLimitSwitch, reverseLimitSwitch;
 
+  ArmFeedforward feedforward;
+
   RelativeEncoder encoder;
-  double currentArmAngle;
+
+  PIDController pid;
+  double kp, ki, kd;
+  double[] kpid = {kp, ki, kd};
+  double currentDistance;
+
+  double setPoint;
 
   double currentVoltage, currentVelocity;
   double exportedValue;
@@ -72,6 +81,9 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("currentVelocity", 0);
     SmartDashboard.putNumber("exportedValue", 0);
 
+    SmartDashboard.putNumber("kP - pid", kp);
+    SmartDashboard.putNumber("kD - pid", kd);
+
     forwardLimitSwitch.enableLimitSwitch(true);
     reverseLimitSwitch.enableLimitSwitch(true);
 
@@ -79,6 +91,11 @@ public class Robot extends TimedRobot {
     encoder.setPositionConversionFactor(360.0 / 36.6);
     encoder.setVelocityConversionFactor(0.1047); // Xrev/m -> rad/s (=(X*2PI) / 60s) 
 
+    feedforward = new ArmFeedforward(kS, kV, kG, kA);
+
+    pid = new PIDController(kp, ki, kd);
+
+    
   }
 
   /**
@@ -91,6 +108,7 @@ public class Robot extends TimedRobot {
    * and
    * SmartDashboard integrated updating.
    */
+
   @Override
   public void robotPeriodic() {
     currentVoltage = SmartDashboard.getNumber("voltage", 0);
@@ -98,7 +116,6 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("currentVelocity", currentVelocity);
     SmartDashboard.putNumber("voltage", currentVoltage);
     exportedValue = currentVoltage / currentVelocity;
-
 
     currentVoltage = (forwardLimitSwitch.isPressed() || reverseLimitSwitch.isPressed()) ? 0 : currentVoltage;
 
@@ -154,7 +171,13 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
-    mainSM.setVoltage(currentVoltage);
+    mainSM.setVoltage(currentVoltage + feedforward.calculate(Math.toRadians(
+      encoder.getPosition()),
+      encoder.getVelocity()
+    ));
+
+
+    pid.calculate(Math.abs(encoder.getPosition()-setPoint), setPoint);
   }
 
   /** This function is called once when the robot is disabled. */
